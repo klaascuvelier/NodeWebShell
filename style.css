@@ -1,0 +1,46 @@
+* {
+ 	margin: 0;
+	padding: 0;
+	font-size: 14px;
+	font-family: Monaco, sans-serif;
+}
+
+body, html { 
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+	position: relative;
+}
+
+input {
+	border: 0;
+	background: transparent;
+	color: #fff;
+	outline: none;
+}
+
+form {
+	display: inline;
+	width: auto;
+}
+
+#output {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+
+	background: #111;
+	color: #fff;
+	padding: 40px 40px;
+
+	overflow: auto;
+}
+
+	li { list-style-type: none; }
+	li:nth-child(2n) { margin-bottom: 10px; }
+
+.pwd { color: #8cbc2b; }
+.whoami { color: #66d9ef; }
+.error { color: red; }

@@ -1,0 +1,205 @@
+<html>
+	<head>
+		<title>Node Web Shell</title>
+		<script src="jquery.min.js"></script>
+		<link href="style.css" type="text/css" rel="stylesheet" />
+		<link type="image/x-icon" rel="Shortcut Icon" href="terminal.png" />
+ 		<link rel="apple-touch-icon" href="terminal.png" />
+ 		<meta name="author" content="klaas cuvelier, http://www.cuvedev.net" />
+	</head>
+
+	<body>
+		<ul id="output"></ul>
+		<form id="input">
+			<input id="input_field" />
+		</form>
+	</body>
+
+	<script>
+	var output = [], 
+		input_field = [],
+		history = [],
+		max_history_entries = 100,
+		history_index = 0;
+		whoami = '', 
+		pwd = '';
+
+	$(function () {
+		output = $('#output');
+		$('body').keydown(function (event) {
+			if (!event.metaKey && !event.altKey && !event.ctrlKey)
+			{
+				output.find('input').focus();
+
+				if (event.keyCode === 9) {
+					event.preventDefault();	
+				}
+				else if (event.keyCode === 38) {
+					get_prev_history_item();
+					event.preventDefault();
+				}
+				else if (event.keyCode === 40) {
+					get_next_history_item();
+					event.preventDefault();
+				}
+			}
+			
+		});
+
+		send_command(['whoami', 'pwd'], function (data) {
+			on_receive(data, false);
+		});
+
+		$('#input').live('submit', function (event) {
+			event.preventDefault();
+
+			var field = $(this).find('input'),
+				cmd = $.trim(field.val());
+
+			if (cmd === 'clear')
+			{
+				push_history(cmd);
+				output.empty();
+				new_command();
+			}
+			else if (cmd.length > 0)
+			{
+				push_history(cmd);
+				field.parent().replaceWith('<span class="cmd">' + cmd + '</span>');
+				send_command(cmd, on_receive);
+			}
+
+		});
+	});
+
+	function send_command(command, callback) {
+		$.post('http://localhost:1337', {
+			command: command
+		}, callback, 'json').error(function () {
+			display('<span class="error">Node Server Error. Try again, or maybe restart the server</span>');
+		});
+	}
+
+	/**
+	 * Callback method when received data from server
+	 * @param Object data - the real data
+	 * @param Bool output - output the response data to the screen or not (false, true or undefined)
+	 * */
+	function on_receive(data, output) {
+		var cmd, val;
+
+		for (cmd in data) {
+			if (data.hasOwnProperty(cmd)) {
+				val = data[cmd];
+
+				switch (cmd) {
+					case 'whoami':
+						whoami = val;
+						break;
+
+					case 'pwd':
+					case 'cd':
+						pwd = val;
+						break;
+				}
+
+
+				if (output !== false)
+				{
+					display(val);
+				}
+			}
+		}
+
+		new_command();
+	}
+
+	/**
+	 * Show new command line on screen
+	 * */
+	function new_command() {
+		display('<span class="whoami">' + whoami + '</span>@<span class="pwd">' + pwd + '</span>&nbsp;&gt;&nbsp;<form id="input"><input type="text"></form>');
+		var i =$('#input').find('input').focus()
+		i.width(output.width() - i.offset()['left'] - 100);
+	}
+
+	/**
+	 * Display a line on the screen 
+	 * */
+	function display(data)
+	{
+		var h = output.append('<li>' + data.replace(/\n/g, '<br />') + '</li>').height();
+		output.get(0).scrollTop = h;
+	}
+
+	/**
+	 * Push command into history
+	 * */
+	function push_history(cmd) {
+		var l = history.length;
+
+		if (l >= max_history_entries)
+		{
+			history.splice(0, (max_history_entries - l));
+		}
+
+		history[history.length] = cmd;
+		history_index = -1;
+	}
+
+	/**
+	 * Get previous command from history array
+	 * uses history_index as pointer
+	 * */
+	function get_prev_history_item() {
+		++history_index;
+		if (history[history.length - history_index - 1] === undefined) {
+			--history_index;
+		}
+
+		get_history_item();
+	}
+
+	/**
+	 * Get next command from history array
+	 * uses history_index as pointer
+	 * */
+	function get_next_history_item() {
+		--history_index;
+		if (history[history.length - history_index - 1] === undefined) {
+			++history_index;
+		}
+
+		get_history_item();	
+	}
+
+	/**
+	 * Put the history entry at pointer (history_index) in the input field
+	 * */
+	function get_history_item() {
+		place_caret_at_end(output.find('input').val(history[history.length - history_index - 1]).get(0));
+	}
+
+	/**
+	 * Place care at end of input element
+	 * */
+	function place_caret_at_end(el, pos) {
+		var pos = el.value.length;
+
+	   	if(el.setSelectionRange)
+		{
+			el.focus();
+			el.setSelectionRange(pos, pos);
+		}
+		else if (el.createTextRange) {
+			var range = el.createTextRange();
+
+			range.collapse(true);
+			range.moveEnd('character', pos);
+			range.moveStart('character', pos);
+			range.select();
+		}
+	}
+
+	</script>
+</html>
